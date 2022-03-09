@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 #include "builtins/builtin.c"
 
 #define TOK_BUFSIZE  64
@@ -11,22 +13,27 @@
 //#define PATH_MAX 64
 
 void type_prompt(){
-    static int first_time = 1;
-    if(first_time){
-        //Write clear screen ansi string to clear console
-        const char* CLEAR_SCREEN_ANSI = " \e[1;1H\e[2J";
-        write(STDOUT_FILENO, CLEAR_SCREEN_ANSI, 12);
-
-        first_time = 0;
-        printf("Welcome to slick (sshell)\n");
-        printf("Type 'help' for help\n");
-    }
-
+    // static int first_time = 1;
+    // if(first_time){
+    //     //Write clear screen ansi string to clear console
+    //     const char* CLEAR_SCREEN_ANSI = " \e[1;1H\e[2J";
+    //     write(STDOUT_FILENO, CLEAR_SCREEN_ANSI, 12);
+    //     first_time = 0;
+    // }
     int path_max = PATH_MAX;
     char cwd[path_max];
     getcwd(cwd, sizeof(cwd));
 
-    printf(MAGENTA "%s #> " RESET, cwd);
+    //Get the last directory to display to user
+    char* folder;
+    char* token;
+    token = strtok(cwd, "/");
+    while(token != NULL){
+        folder = token;
+        token = strtok(NULL, "/");
+    }
+
+    printf(MAGENTA "/%s #> " RESET, folder);
 }
 
 char* read_input(void){
@@ -39,10 +46,7 @@ char* read_input(void){
         exit(1);
     }
 
-    getline(&buffer, &bufsize, stdin);
-    int len = strlen(buffer);
-    buffer[len-1] = '\0';
-
+    buffer = readline(" ");
     return buffer;
 }
 
@@ -111,9 +115,37 @@ int execute(char** args){
 
 void sshell_loop(void){
     //Main shell loop
-    char* line;
     char** args;
     int status;
+
+
+    FILE* fp;
+    char* line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    char* filepath = getenv("HOME");
+    strcat(filepath, "/.ssrc");
+
+
+    fp = fopen(filepath, "r");
+    if (fp == NULL){
+        exit(EXIT_FAILURE);
+    }
+
+    while ((read = getline(&line, &len, fp)) != -1) {
+
+        line[read-1] = '\0';
+        args = split_line(line);
+
+
+        //printf("%s", args[0]);
+
+        status = launch(args);
+        // printf("Retrieved line of length %zu:\n", read);
+        // printf("%s", line);
+    }
+    
 
     do{
         type_prompt();
