@@ -40,6 +40,8 @@ char* read_input(void){
     }
 
     getline(&buffer, &bufsize, stdin);
+    int len = strlen(buffer);
+    buffer[len-1] = '\0';
 
     return buffer;
 }
@@ -51,16 +53,18 @@ char** split_line(char* line){
     //Array to store our array of all the elements of the line
     char** tokens = malloc(bufsize * sizeof(char));
     int pos = 0;
+    char* delim = " ";
 
-    char* curToken = strtok(line, " ");
+    char* curToken = strtok(line, delim);
     
 
     while(curToken != NULL){
         tokens[pos] = curToken;
         pos++;
-        curToken = strtok(NULL, " ");
+        curToken = strtok(NULL, delim);
     }
     tokens[pos] = NULL;
+
     return tokens;
 }
 
@@ -114,9 +118,11 @@ void sshell_loop(void){
     do{
         type_prompt();
         line = read_input();
-        args = split_line(line);
+        //printf("line: %s\n", line);
 
-        printf("'%s'", args[0]);
+        args = split_line(line);
+        
+        //printf("'%s'\n", args[0]);
 
         status = execute(args);
 
