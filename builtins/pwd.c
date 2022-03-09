@@ -2,11 +2,10 @@
 
 int sshell_pwd(char** args){
     int path_max = 64;
-    char* cwd = malloc(path_max * sizeof(char));
+    char cwd[path_max];
     getcwd(cwd, sizeof(cwd));
 
-    printf("%s", cwd);
+    printf("%s\n", cwd);
 
-    free(cwd);
     return 1;
 }
