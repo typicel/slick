@@ -7,7 +7,6 @@
 #include "pwd.c"
 #include "cd.c"
 
-#define PATH_MAX 64
 #define GREEN   "\033[32m"
 #define RESET   "\033[0m"
 
@@ -38,9 +37,9 @@ int sshell_help(char** args){
     int i;
 
     printf("\n\n\nWelcome to Slick\n");
-    printf("HOW TO USE\n");
+    printf("-- HOW TO USE --\n");
     printf("Enter the command you want to use and press enter\n");
-    printf("List of builtin commands:\n");
+    printf("List of built in commands:\n");
 
     for(i = 0; i < num_bulitins(); i++){
         printf(GREEN "%s     ", builtins[i]);
