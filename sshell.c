@@ -2,24 +2,23 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "builtins/builtin.c"
+#include "handler.c"
 
 #define TOK_BUFSIZE  64 /* size of each token */
 #define SH_BUFSIZE 1024 /* size of input buffer */
-#define PATH_MAX 64 /* Max size of path */
-#define MAX_HIST_SIZE 20 /* history array holds previous 20 commands */
 #define MAGENTA "\033[35m"      
 #define RESET   "\033[0m"
 
-char** history[MAX_HIST_SIZE];
-int history_count = 0;
 
-void type_prompt(){
+void generate_prompt(char* prompt, int len){
     int path_max = PATH_MAX;
     char cwd[path_max];
     getcwd(cwd, sizeof(cwd));
+    int status;
 
     //Get the last directory to display to user
     char* folder;
@@ -29,13 +28,15 @@ void type_prompt(){
         folder = token;
         token = strtok(NULL, "/");
     }
-
-    printf(MAGENTA "%s #> " RESET, folder);
+    
+    //save the printf output into prompt
+    snprintf(prompt, len, MAGENTA "%s #> " RESET, folder);
 }
 
 char* read_input(void){
 
     size_t bufsize = SH_BUFSIZE;
+    char prompt[128];
 
     char *buffer = (char*) malloc(bufsize * sizeof(char));
     if(buffer == NULL){
@@ -43,7 +44,8 @@ char* read_input(void){
         exit(1);
     }
 
-    buffer = readline(" ");
+    generate_prompt(prompt, 128); //store the prompt into prompt variable to pass into readline
+    buffer = readline(prompt);
     return buffer;
 }
 
@@ -51,8 +53,8 @@ char** split_line(char* line){
 
     int bufsize = TOK_BUFSIZE;
 
-    //Array to store our array of all the elements of the line
-    char** tokens = malloc(bufsize * sizeof(char));
+    //Array to store all the elements of the line
+    char** tokens = malloc(TOK_BUFSIZE * sizeof(char*));
     int pos = 0;
     char* delim = " ";
 
@@ -77,11 +79,11 @@ int launch(char** args){
     pid = fork();
     if(pid == 0){
         if(execvp(args[0], args) == -1){
-            perror("sshell exe:");
+            perror("slick");
         }
         exit(EXIT_FAILURE);
     } else if(pid < 0){
-        perror("sshell");
+        perror("slick");
     } else { //successful fork
 
         do { //wait for the child process to finish execution of command
@@ -106,22 +108,7 @@ int execute(char** args){
         }
     }
 
-    return launch(args);
-}
-
-void add_to_history(char* command){
-    /* 1. If the history size is less than the size of array, add to end
-       2. If not, shift all elements down one, and add new command to freed spot */
-
-    if(history_count < MAX_HIST_SIZE){
-        history[history_count] = command;
-        history_count++;
-    } else {
-        for(int i = 0; i < history_count; i++){
-            char* temp = history[i+1];
-        }
-    }
-
+    return launch(args); //if not builtin, run execvp on the command
 }
 
 void startup(){
@@ -131,15 +118,16 @@ void startup(){
     size_t len = 0;
     ssize_t read;
     int status;
+    char home[64];
 
-    char* filepath = getenv("HOME");
-    strcat(filepath, "/.ssrc");
+    char* f_path = getenv("HOME");
+    strcpy(home, f_path);
+    strcat(home, "/.ssrc");
 
 
-    fp = fopen(filepath, "r");
-    //printf("Opened file %s", filepath);
+    fp = fopen(home, "r");
     if (fp == NULL){
-        printf("uh oh");
+        printf("not yass");
         exit(EXIT_FAILURE);
     }
 
@@ -149,6 +137,7 @@ void startup(){
         args = split_line(line);
         status = launch(args);
     }
+    fclose(fp);
 
 }
 
@@ -158,12 +147,25 @@ void sshell_loop(void){
     char** args;
     int status;
     char* line = NULL;
+    char* env;
+    
+    signalManager();
 
     do{
-        type_prompt();
         line = read_input();
-        add_to_history(line); /* add the current line to history */
+        add_history(line); //add command entered to history
+
         args = split_line(line);
+
+        //Repalce environment variables
+        for(int i = 0; i < TOK_BUFSIZE; i++){
+            if(args[i] == NULL){break;}
+            if(args[i][0] == '$'){
+                env = getenv(args[i]+1);
+                strcpy(args[i], env);
+            }
+        }
+
         status = execute(args);
 
     } while(status);
@@ -171,7 +173,7 @@ void sshell_loop(void){
 
 
 int main(){
-    
+    using_history();
     startup();
     sshell_loop();
 
