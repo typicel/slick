@@ -29,7 +29,7 @@ int sshell_ls(char** args){
             printf("%s    ",d->d_name);
         }
 
-        unsigned char* type = d->d_type;
+        //unsigned char* type = d->d_type;
     } 
     printf("\n");
 

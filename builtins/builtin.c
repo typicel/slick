@@ -9,7 +9,7 @@
 #include "pwd.c"
 #include "cd.c"
 
-char* builtins[] = {"exit", "cd", "help", "pwd", "ls"};
+char* builtins[] = {"exit", "cd", "help", "pwd"};
 
 int num_bulitins(){
     return sizeof(builtins) / sizeof(char*);
