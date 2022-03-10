@@ -6,20 +6,17 @@
 #include <readline/history.h>
 #include "builtins/builtin.c"
 
-#define TOK_BUFSIZE  64
-#define SH_BUFSIZE 1024
-#define MAGENTA "\033[35m"      /* Magenta */
+#define TOK_BUFSIZE  64 /* size of each token */
+#define SH_BUFSIZE 1024 /* size of input buffer */
+#define PATH_MAX 64 /* Max size of path */
+#define MAX_HIST_SIZE 20 /* history array holds previous 20 commands */
+#define MAGENTA "\033[35m"      
 #define RESET   "\033[0m"
-//#define PATH_MAX 64
+
+char** history[MAX_HIST_SIZE];
+int history_count = 0;
 
 void type_prompt(){
-    // static int first_time = 1;
-    // if(first_time){
-    //     //Write clear screen ansi string to clear console
-    //     const char* CLEAR_SCREEN_ANSI = " \e[1;1H\e[2J";
-    //     write(STDOUT_FILENO, CLEAR_SCREEN_ANSI, 12);
-    //     first_time = 0;
-    // }
     int path_max = PATH_MAX;
     char cwd[path_max];
     getcwd(cwd, sizeof(cwd));
@@ -33,7 +30,7 @@ void type_prompt(){
         token = strtok(NULL, "/");
     }
 
-    printf(MAGENTA "/%s #> " RESET, folder);
+    printf(MAGENTA "%s #> " RESET, folder);
 }
 
 char* read_input(void){
@@ -109,60 +106,73 @@ int execute(char** args){
         }
     }
 
-
     return launch(args);
 }
 
-void sshell_loop(void){
-    //Main shell loop
-    char** args;
-    int status;
+void add_to_history(char* command){
+    /* 1. If the history size is less than the size of array, add to end
+       2. If not, shift all elements down one, and add new command to freed spot */
 
+    if(history_count < MAX_HIST_SIZE){
+        history[history_count] = command;
+        history_count++;
+    } else {
+        for(int i = 0; i < history_count; i++){
+            char* temp = history[i+1];
+        }
+    }
 
+}
+
+void startup(){
     FILE* fp;
     char* line = NULL;
+    char** args;
     size_t len = 0;
     ssize_t read;
+    int status;
 
     char* filepath = getenv("HOME");
     strcat(filepath, "/.ssrc");
 
 
     fp = fopen(filepath, "r");
+    //printf("Opened file %s", filepath);
     if (fp == NULL){
+        printf("uh oh");
         exit(EXIT_FAILURE);
     }
 
+    //read from .ssrc and run startup commands
     while ((read = getline(&line, &len, fp)) != -1) {
-
         line[read-1] = '\0';
         args = split_line(line);
-
-
-        //printf("%s", args[0]);
-
         status = launch(args);
-        // printf("Retrieved line of length %zu:\n", read);
-        // printf("%s", line);
     }
-    
+
+}
+
+
+void sshell_loop(void){
+    //Main shell loop
+    char** args;
+    int status;
+    char* line = NULL;
 
     do{
         type_prompt();
         line = read_input();
-        //printf("line: %s\n", line);
-
+        add_to_history(line); /* add the current line to history */
         args = split_line(line);
-        
-        //printf("'%s'\n", args[0]);
-
         status = execute(args);
 
     } while(status);
 }
 
+
 int main(){
     
+    startup();
     sshell_loop();
 
     return 1;

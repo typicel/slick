@@ -1,4 +1,4 @@
-/* Implementation for ls command */
+/* Implementation of the ls command */
 #include <dirent.h>
 #include <stdio.h>
 #include <errno.h>
@@ -10,7 +10,6 @@ int sshell_ls(char** args){
     getcwd(cwd, sizeof(cwd));
 
     //open the current directory
-    struct dirent *d;
     DIR *dh = opendir(cwd);
 
     //If we couldn't open directory
@@ -23,11 +22,14 @@ int sshell_ls(char** args){
         exit(1);
     }
 
+    struct dirent *d;
     //Read all contents of current directory, ignoring hidden files
     while((d = readdir(dh)) != NULL){
         if(d->d_name[0] != '.'){
             printf("%s    ",d->d_name);
         }
+
+        unsigned char* type = d->d_type;
     } 
     printf("\n");
 
