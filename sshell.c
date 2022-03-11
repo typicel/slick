@@ -49,26 +49,50 @@ char* read_input(void){
     return buffer;
 }
 
-char** split_line(char* line){
 
-    int bufsize = TOK_BUFSIZE;
-
+void split_line(char* line, char* args[]){
+    printf("Reading command: %s\n", line);
+ 
     //Array to store all the elements of the line
-    char** tokens = malloc(TOK_BUFSIZE * sizeof(char*));
+    int numtokens = 0;
     int pos = 0;
-    char* delim = " ";
-
-    char* curToken = strtok(line, delim);
-    
-
-    while(curToken != NULL){
-        tokens[pos] = curToken;
-        pos++;
-        curToken = strtok(NULL, delim);
+    char token[64];
+    // char token[64];
+    for(int i = 0; i < TOK_BUFSIZE; i++){
+        args[i] = 0;
     }
-    tokens[pos] = NULL;
 
-    return tokens;
+
+    for(int i = 0; i < strlen(line); i++){
+
+        if(line[i] == ' '){
+            //printf("Adding '%s'\n", token);
+            //token[pos] = '\0';
+            args[numtokens++] = strdup(token);
+            memset(token, 0, strlen(token));
+            pos = 0;
+        } else if(line[i] == '\"'){
+            i++; /*Move to next character inside quotes*/
+            while(line[i] != '\"'){
+                token[pos++] = line[i++];
+            }
+            //token[pos] = '\0';
+            //printf("Adding quoted word: '%s'\n", token);
+            args[numtokens++] = strdup(token);
+            memset(token, 0, strlen(token));
+            pos = 0;
+        } else { /* Character is neither white space or quote*/
+            token[pos++] = line[i];
+        }
+    }
+    args[numtokens] = token; /* Add last command */
+    
+    args[numtokens+1] = NULL;
+    // for(int i = 0; i < TOK_BUFSIZE; i++){
+    //         if(args[i] == NULL){break;}
+    //         printf("args[%d]: %s\n", i, args[i]);
+    // }
+
 }
 
 
@@ -113,8 +137,9 @@ int execute(char** args){
 
 void startup(){
     FILE* fp;
-    char* line = NULL;
-    char** args;
+    char* line;
+    char* args[TOK_BUFSIZE];
+    //char** args = malloc(TOK_BUFSIZE*sizeof(char*));
     size_t len = 0;
     ssize_t read;
     int status;
@@ -134,7 +159,7 @@ void startup(){
     //read from .ssrc and run startup commands
     while ((read = getline(&line, &len, fp)) != -1) {
         line[read-1] = '\0';
-        args = split_line(line);
+        split_line(line, args);
         status = launch(args);
     }
     fclose(fp);
@@ -144,9 +169,9 @@ void startup(){
 
 void sshell_loop(void){
     //Main shell loop
-    char** args;
+    char* args[TOK_BUFSIZE];
     int status;
-    char* line = NULL;
+    char* line;
     char* env;
     
     signalManager();
@@ -155,7 +180,12 @@ void sshell_loop(void){
         line = read_input();
         add_history(line); //add command entered to history
 
-        args = split_line(line);
+        split_line(line, args);
+
+        // for(int i = 0; i < TOK_BUFSIZE; i++){
+        //     if(args[i] == NULL){break;}
+        //     printf("args[%d]: %s\n", i, args[i]);
+        // }
 
         //Repalce environment variables
         for(int i = 0; i < TOK_BUFSIZE; i++){
@@ -173,6 +203,11 @@ void sshell_loop(void){
 
 
 int main(){
+
+    // char* line = "Hello \"Hello World\"";
+    // char** args = malloc(TOK_BUFSIZE*sizeof(char*));
+    // split_line(line, args);
+
     using_history();
     startup();
     sshell_loop();
