@@ -12,7 +12,7 @@
 
 #define TOK_BUFSIZE  128 /* size of each token */
 #define SH_BUFSIZE 1024 /* size of input buffer */
-#define PATH_MAX 64
+#define PATH_MAX 256
 #define MAGENTA "\033[35m"      
 #define RESET   "\033[0m"
 
