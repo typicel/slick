@@ -80,8 +80,10 @@ void split_line(char* line, char* args[]){
             token[pos++] = line[i];
         }
     }
-    token[pos] = '\0';
-    args[numtokens] = strdup(token); /* Add last command */
+    if(strlen(token) > 0){ /* if the final token has content */
+        token[pos] = '\0';
+        args[numtokens] = strdup(token); /* Add last command */
+    }
     args[numtokens+1] = (char*)NULL; /* args is terminated by a null char* pointer*/
 
 }
@@ -151,12 +153,12 @@ void startup(){
         line[read-1] = '\0';
         split_line(line, args);
 
-        // int test = 0;
-        // while(args[test] != NULL){
-        //     printf("args[%d]:'%s'\n", test, args[test]);
-        //     test++;
-        // }
-        // printf("args[%d]: '%s'\n", test, args[test]);
+        int test = 0;
+        while(args[test] != NULL){
+            printf("args[%d]:'%s'\n", test, args[test]);
+            test++;
+        }
+        printf("args[%d]: '%s'\n", test, args[test]);
 
 
         status = launch(args);
@@ -181,10 +183,12 @@ void sshell_loop(void){
 
         split_line(line, args);
 
-        // for(int i = 0; i < TOK_BUFSIZE; i++){
-        //     if(args[i] == NULL){break;}
-        //     printf("args[%d]: %s\n", i, args[i]);
-        // }
+        int test = 0;
+        while(args[test] != NULL){
+            printf("args[%d]:'%s'\n", test, args[test]);
+            test++;
+        }
+        printf("args[%d]: '%s'\n", test, args[test]);
 
         //Repalce environment variables
         for(int i = 0; i < TOK_BUFSIZE; i++){
