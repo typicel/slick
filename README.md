@@ -1,5 +1,6 @@
 # slick
 A simple UNIX shell written in C
+![image of slick running in the terminal](images/slick.png)
 
 
 ## How to install
