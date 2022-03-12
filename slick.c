@@ -5,11 +5,14 @@
 #include <signal.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "builtins/builtin.c"
 #include "handler.c"
 
-#define TOK_BUFSIZE  64 /* size of each token */
+#define TOK_BUFSIZE  128 /* size of each token */
 #define SH_BUFSIZE 1024 /* size of input buffer */
+#define PATH_MAX 64
 #define MAGENTA "\033[35m"      
 #define RESET   "\033[0m"
 
@@ -49,26 +52,43 @@ char* read_input(void){
     return buffer;
 }
 
-char** split_line(char* line){
 
-    int bufsize = TOK_BUFSIZE;
-
+void split_line(char* line, char* args[]){
+    //printf("Reading command: %s\n", line);
+ 
     //Array to store all the elements of the line
-    char** tokens = malloc(TOK_BUFSIZE * sizeof(char*));
+    int numtokens = 0;
     int pos = 0;
-    char* delim = " ";
+    char token[128];
+    memset(args, 0, TOK_BUFSIZE*sizeof(char));
 
-    char* curToken = strtok(line, delim);
-    
+    /* "test command" */
+    for(int i = 0; i < strlen(line); i++){
 
-    while(curToken != NULL){
-        tokens[pos] = curToken;
-        pos++;
-        curToken = strtok(NULL, delim);
+        if(line[i] == ' '){
+            token[pos] = '\0';
+            args[numtokens++] = strdup(token);
+            memset(token, 0, sizeof(char)*128);
+            pos = 0;
+        } else if(line[i] == '\"'){
+            i++; /*Move to next character inside quotes*/
+            while(line[i] != '\"'){
+                token[pos++] = line[i++];
+            }
+            token[pos] = '\0';
+            args[numtokens++] = strdup(token);
+            memset(token, 0, sizeof(char)*128);
+            pos = 0;
+        } else { /* Character is neither white space or quote*/
+            token[pos++] = line[i];
+        }
     }
-    tokens[pos] = NULL;
+    if(strlen(token) > 0){ /* if the final token has content */
+        token[pos] = '\0';
+        args[numtokens] = strdup(token); /* Add last command */
+    }
+    args[numtokens+1] = (char*)NULL; /* args is terminated by a null char* pointer*/
 
-    return tokens;
 }
 
 
@@ -113,8 +133,7 @@ int execute(char** args){
 
 void startup(){
     FILE* fp;
-    char* line = NULL;
-    char** args;
+    char* line, *env, *args[TOK_BUFSIZE];
     size_t len = 0;
     ssize_t read;
     int status;
@@ -127,14 +146,16 @@ void startup(){
 
     fp = fopen(home, "r");
     if (fp == NULL){
-        printf("not yass");
+        printf("slick: could not find /usr/bin/.ssrc");
         exit(EXIT_FAILURE);
     }
 
     //read from .ssrc and run startup commands
     while ((read = getline(&line, &len, fp)) != -1) {
         line[read-1] = '\0';
-        args = split_line(line);
+        split_line(line, args);
+        
+        
         status = launch(args);
     }
     fclose(fp);
@@ -144,10 +165,11 @@ void startup(){
 
 void sshell_loop(void){
     //Main shell loop
-    char** args;
+    char* args[TOK_BUFSIZE];
     int status;
-    char* line = NULL;
+    char* line;
     char* env;
+    char* fullpath;
     
     signalManager();
 
@@ -155,7 +177,7 @@ void sshell_loop(void){
         line = read_input();
         add_history(line); //add command entered to history
 
-        args = split_line(line);
+        split_line(line, args);
 
         //Repalce environment variables
         for(int i = 0; i < TOK_BUFSIZE; i++){
@@ -164,6 +186,12 @@ void sshell_loop(void){
                 env = getenv(args[i]+1);
                 strcpy(args[i], env);
             }
+            // if(args[i][0] == '~'){
+            //     env = getenv("HOME");
+            //     strcpy(fullpath, env);
+            //     strcat(fullpath, args[i]);
+            //     args[i] = fullpath;
+            // }
         }
 
         status = execute(args);
@@ -173,6 +201,11 @@ void sshell_loop(void){
 
 
 int main(){
+
+    // char* line = "Hello \"Hello World\"";
+    // char** args = malloc(TOK_BUFSIZE*sizeof(char*));
+    // split_line(line, args);
+
     using_history();
     startup();
     sshell_loop();

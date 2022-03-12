@@ -1,11 +1,7 @@
 # slick
-A simple shell I created and will continue to work on adding some new features
+A simple UNIX shell written in C
 
-## What it can do right now
-1. All the basic shell commands you'd expect (ls, cd, pwd, etc.)
-2. Any other command you want really, it's not that complicated
 
-## What I still need to make
-1. Adding env variables
-2. Probably updating things to make the prompt look nicer
-
+## How to install
+Run `make slick` to generate an executable in `/usr/bin/`
+This will also generate a `.ssrc` file, which you can use to customize commands that run when the shell is launched
