@@ -8,7 +8,7 @@
 #include "builtins/builtin.c"
 #include "handler.c"
 
-#define TOK_BUFSIZE  64 /* size of each token */
+#define TOK_BUFSIZE  128 /* size of each token */
 #define SH_BUFSIZE 1024 /* size of input buffer */
 #define MAGENTA "\033[35m"      
 #define RESET   "\033[0m"
@@ -51,47 +51,38 @@ char* read_input(void){
 
 
 void split_line(char* line, char* args[]){
-    printf("Reading command: %s\n", line);
+    //printf("Reading command: %s\n", line);
  
     //Array to store all the elements of the line
     int numtokens = 0;
     int pos = 0;
-    char token[64];
-    // char token[64];
-    for(int i = 0; i < TOK_BUFSIZE; i++){
-        args[i] = 0;
-    }
+    char token[128];
+    memset(args, 0, TOK_BUFSIZE*sizeof(char));
 
-
+    /* "test command" */
     for(int i = 0; i < strlen(line); i++){
 
         if(line[i] == ' '){
-            //printf("Adding '%s'\n", token);
-            //token[pos] = '\0';
+            token[pos] = '\0';
             args[numtokens++] = strdup(token);
-            memset(token, 0, strlen(token));
+            memset(token, 0, sizeof(char)*128);
             pos = 0;
         } else if(line[i] == '\"'){
             i++; /*Move to next character inside quotes*/
             while(line[i] != '\"'){
                 token[pos++] = line[i++];
             }
-            //token[pos] = '\0';
-            //printf("Adding quoted word: '%s'\n", token);
+            token[pos] = '\0';
             args[numtokens++] = strdup(token);
-            memset(token, 0, strlen(token));
+            memset(token, 0, sizeof(char)*128);
             pos = 0;
         } else { /* Character is neither white space or quote*/
             token[pos++] = line[i];
         }
     }
-    args[numtokens] = token; /* Add last command */
-    
-    args[numtokens+1] = NULL;
-    // for(int i = 0; i < TOK_BUFSIZE; i++){
-    //         if(args[i] == NULL){break;}
-    //         printf("args[%d]: %s\n", i, args[i]);
-    // }
+    token[pos] = '\0';
+    args[numtokens] = strdup(token); /* Add last command */
+    args[numtokens+1] = (char*)NULL; /* args is terminated by a null char* pointer*/
 
 }
 
@@ -139,7 +130,6 @@ void startup(){
     FILE* fp;
     char* line;
     char* args[TOK_BUFSIZE];
-    //char** args = malloc(TOK_BUFSIZE*sizeof(char*));
     size_t len = 0;
     ssize_t read;
     int status;
@@ -160,6 +150,15 @@ void startup(){
     while ((read = getline(&line, &len, fp)) != -1) {
         line[read-1] = '\0';
         split_line(line, args);
+
+        // int test = 0;
+        // while(args[test] != NULL){
+        //     printf("args[%d]:'%s'\n", test, args[test]);
+        //     test++;
+        // }
+        // printf("args[%d]: '%s'\n", test, args[test]);
+
+
         status = launch(args);
     }
     fclose(fp);
