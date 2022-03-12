@@ -5,11 +5,14 @@
 #include <signal.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "builtins/builtin.c"
 #include "handler.c"
 
 #define TOK_BUFSIZE  128 /* size of each token */
 #define SH_BUFSIZE 1024 /* size of input buffer */
+#define PATH_MAX 64
 #define MAGENTA "\033[35m"      
 #define RESET   "\033[0m"
 
@@ -130,8 +133,7 @@ int execute(char** args){
 
 void startup(){
     FILE* fp;
-    char* line;
-    char* args[TOK_BUFSIZE];
+    char* line, *env, *args[TOK_BUFSIZE];
     size_t len = 0;
     ssize_t read;
     int status;
@@ -144,7 +146,7 @@ void startup(){
 
     fp = fopen(home, "r");
     if (fp == NULL){
-        printf("not yass");
+        printf("slick: could not find /usr/bin/.ssrc");
         exit(EXIT_FAILURE);
     }
 
@@ -152,15 +154,8 @@ void startup(){
     while ((read = getline(&line, &len, fp)) != -1) {
         line[read-1] = '\0';
         split_line(line, args);
-
-        int test = 0;
-        while(args[test] != NULL){
-            printf("args[%d]:'%s'\n", test, args[test]);
-            test++;
-        }
-        printf("args[%d]: '%s'\n", test, args[test]);
-
-
+        
+        
         status = launch(args);
     }
     fclose(fp);
@@ -174,6 +169,7 @@ void sshell_loop(void){
     int status;
     char* line;
     char* env;
+    char* fullpath;
     
     signalManager();
 
@@ -183,13 +179,6 @@ void sshell_loop(void){
 
         split_line(line, args);
 
-        int test = 0;
-        while(args[test] != NULL){
-            printf("args[%d]:'%s'\n", test, args[test]);
-            test++;
-        }
-        printf("args[%d]: '%s'\n", test, args[test]);
-
         //Repalce environment variables
         for(int i = 0; i < TOK_BUFSIZE; i++){
             if(args[i] == NULL){break;}
@@ -197,6 +186,12 @@ void sshell_loop(void){
                 env = getenv(args[i]+1);
                 strcpy(args[i], env);
             }
+            // if(args[i][0] == '~'){
+            //     env = getenv("HOME");
+            //     strcpy(fullpath, env);
+            //     strcat(fullpath, args[i]);
+            //     args[i] = fullpath;
+            // }
         }
 
         status = execute(args);

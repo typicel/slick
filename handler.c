@@ -16,7 +16,7 @@ void INThandler(int sig){
         exit(0); 
     else {
         signal(SIGINT, INThandler); //reinstall handler
-        
+        return;
     }
 
 }
